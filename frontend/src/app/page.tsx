@@ -1,0 +1,301 @@
+'use client';
+
+import { useEffect, useState, useRef } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
+export default function Home() {
+  const [messages, setMessages] = useState<Array<{ id: string; role: string; content: string; isTranscription?: boolean; audioUrl?: string }>>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Audio recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  // Track decoded duration for the current recording (in seconds)
+  const [audioDuration, setAudioDuration] = useState<number | null>(null);
+  const MAX_RECORDING_SECONDS = 120; // display this as the max length
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<BlobPart[]>([]);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const messageListRef = useRef<HTMLDivElement | null>(null);
+
+  function formatTime(seconds: number | null | undefined) {
+    if (!seconds || isNaN(seconds)) return '0:00';
+    const s = Math.floor(seconds);
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, '0')}`;
+  }
+
+  const BACKEND_URL = "https://jordynn-undeclinable-uncolloquially.ngrok-free.dev";
+
+  // No session handling needed; this app sends audio directly to /transcribe.
+
+  // No session history loading required.
+
+
+
+  // Audio recording helpers
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioContextRef.current = new AudioContext();
+      audioChunksRef.current = [];
+      const options = { mimeType: 'audio/webm' };
+      const mr = new MediaRecorder(stream, options as any);
+      mediaRecorderRef.current = mr;
+      mr.ondataavailable = (e: BlobEvent) => audioChunksRef.current.push(e.data);
+      mr.onstop = async () => {
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        try {
+          const wav = await convertToWav(blob);
+          setAudioBlob(wav);
+          const localUrl = URL.createObjectURL(wav);
+          setAudioUrl(localUrl);
+          // Decode duration from the generated URL
+          const tmp = new Audio(localUrl);
+          tmp.addEventListener('loadedmetadata', () => {
+            if (!isNaN(tmp.duration)) setAudioDuration(tmp.duration);
+          });
+          tmp.addEventListener('error', () => setAudioDuration(null));
+        } catch (err) {
+          console.error('Error converting to WAV:', err);
+        }
+        stream.getTracks().forEach((t) => t.stop());
+      };
+      mr.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Error starting recording:', err);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  async function convertToWav(blob: Blob): Promise<Blob> {
+    const arrayBuffer = await blob.arrayBuffer();
+    const audioCtx = audioContextRef.current || new AudioContext();
+    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+    const numOfChan = audioBuffer.numberOfChannels;
+    const length = 44 + audioBuffer.length * numOfChan * 2;
+    const buffer = new ArrayBuffer(length);
+    const view = new DataView(buffer);
+    let offset = 0;
+    function writeString(s: string) { for (let i = 0; i < s.length; i++) { view.setUint8(offset + i, s.charCodeAt(i)); } offset += s.length; }
+    writeString('RIFF');
+    view.setUint32(offset, 36 + audioBuffer.length * numOfChan * 2, true); offset += 4;
+    writeString('WAVE'); writeString('fmt ');
+    view.setUint32(offset, 16, true); offset += 4;
+    view.setUint16(offset, 1, true); offset += 2; // PCM
+    view.setUint16(offset, numOfChan, true); offset += 2;
+    view.setUint32(offset, audioBuffer.sampleRate, true); offset += 4;
+    view.setUint32(offset, audioBuffer.sampleRate * numOfChan * 2, true); offset += 4;
+    view.setUint16(offset, numOfChan * 2, true); offset += 2;
+    view.setUint16(offset, 16, true); offset += 2;
+    writeString('data');
+    view.setUint32(offset, audioBuffer.length * numOfChan * 2, true); offset += 4;
+
+    // write interleaved PCM16
+    const channels = [] as Float32Array[];
+    for (let i = 0; i < numOfChan; i++) channels.push(audioBuffer.getChannelData(i));
+    let pos = offset;
+    for (let i = 0; i < audioBuffer.length; i++) {
+      for (let ch = 0; ch < numOfChan; ch++) {
+        let sample = Math.max(-1, Math.min(1, channels[ch][i]));
+        view.setInt16(pos, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+        pos += 2;
+      }
+    }
+
+    return new Blob([view], { type: 'audio/wav' });
+  }
+
+  const downloadWav = () => {
+    if (!audioBlob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(audioBlob);
+    a.download = `recording-${Date.now()}.wav`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
+  const sendAudio = async () => {
+    if (!audioBlob) return;
+    setLoading(true);
+    // Make a local object URL that the message will own so it doesn't rely on component state
+    const localAudioUrl = URL.createObjectURL(audioBlob);
+    try {
+      const form = new FormData();
+      form.append('audio', audioBlob, `recording-${Date.now()}.wav`);
+
+      const res = await fetch(`${BACKEND_URL}/transcribe`, {
+        method: 'POST',
+        body: form,
+      });
+      const data = await res.json();
+      const text = data.text || data.transcript || data.answer;
+      if (text) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `audio-${Date.now()}`,
+            role: 'assistant',
+            content: text,
+            isTranscription: true,
+            audioUrl: localAudioUrl,
+          },
+        ]);
+        // Clear recording state after message is created
+        setAudioUrl(null);
+        setAudioBlob(null);
+      } else {
+        console.error('No transcription returned', data);
+        URL.revokeObjectURL(localAudioUrl);
+      }
+    } catch (err) {
+      console.error('Error uploading audio:', err);
+      // cleanup local URL on error
+      URL.revokeObjectURL(localAudioUrl);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => {});
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    // Revoke previous object URL when audioUrl changes or the component unmounts
+    return () => {
+      if (audioUrl) {
+        try { URL.revokeObjectURL(audioUrl); } catch (e) { /* ignore */ }
+      }
+    };
+  }, [audioUrl]);
+
+  useEffect(() => {
+    if (!messageListRef.current) return;
+    // Auto-scroll to bottom so new messages stack and are visible
+    messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
+
+    // Center the latest transcription message if present
+    const lastTranscription = [...messages].reverse().find((m) => m.isTranscription);
+    if (lastTranscription) {
+      const el = document.querySelector(`[data-msg-id="${lastTranscription.id}"]`) as HTMLElement | null;
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [messages]);
+
+  return (
+    <main className="flex flex-col h-screen bg-gradient-to-b from-blue-50 to-blue-100 relative">
+
+
+      {/* Title */}
+      <div className="text-center py-4 text-2xl font-bold text-blue-800">
+        CariVoice
+      </div>
+
+      {/* Chat Container */}
+      <div ref={messageListRef} className="flex-1 overflow-y-auto p-4 space-y-3 pb-48 flex flex-col items-start">
+        {messages.length === 0 ? (
+          <p className="text-center text-gray-500 mt-8">Tap the button to begin telling your story!</p>
+        ) : (
+          messages.map((msg, i) => {
+            if (msg.isTranscription) {
+              return (
+                <div
+                  key={msg.id}
+                  data-msg-id={msg.id}
+                  className="p-4 rounded-2xl bg-white shadow-md max-w-xl w-full mx-4 min-h-[96px] flex items-center justify-between space-x-4"
+                >
+                  <div className="flex-1 text-left text-base font-medium text-gray-900">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                  </div>
+                  {msg.audioUrl && (
+                    <audio controls src={msg.audioUrl} className="w-48 rounded-md ml-4" />
+                  )}
+                </div>
+              );
+            }
+
+            return (
+              <div
+                key={msg.id || i}
+                className={`p-4 rounded-2xl max-w-xl w-full mx-4 min-h-[96px] ${
+                  msg.role === "user"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-gray-800"
+                }`}
+              >
+                {msg.role === "assistant" ? (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {msg.content}
+                  </ReactMarkdown>
+                ) : (
+                  msg.content
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Large Right-Aligned Record Panel */}
+      <div className="fixed bottom-6 right-6 z-20 flex flex-col items-end space-y-3 w-80 px-4">
+        <div className="w-full bg-white border border-gray-200 rounded-xl p-3 shadow-md flex flex-col items-center space-y-3">
+          {audioUrl ? (
+            <div className="w-full flex flex-col items-center">
+              <audio controls src={audioUrl} className="w-72 rounded-md mb-2"></audio>
+              <div className="text-sm text-gray-500">{formatTime(audioDuration)} • Max: {formatTime(MAX_RECORDING_SECONDS)}</div>
+              <div className="mt-2 flex space-x-3">
+                <button
+                  className="px-3 py-2 rounded-full bg-gray-200 hover:bg-gray-300"
+                  onClick={downloadWav}
+                >
+                  Download .wav
+                </button>
+                <button
+                  className={`px-4 py-2 rounded-full font-semibold ${loading ? 'bg-gray-300 text-gray-500' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                  onClick={sendAudio}
+                  disabled={loading}
+                >
+                  {loading ? '...' : 'Send'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="w-full flex justify-center text-sm text-gray-500">No recording yet</div>
+          )}
+
+          <div className="w-full flex justify-center">
+            <button
+              onClick={isRecording ? stopRecording : startRecording}
+              className={`w-36 h-36 rounded-full flex flex-col items-center justify-center shadow-lg transition transform ${isRecording ? 'bg-red-600 text-white scale-95 animate-pulse' : 'bg-green-600 text-white hover:scale-105'}`}
+            >
+              {isRecording ? (
+                <>
+                  <div className="text-xl font-bold">Recording…</div>
+                  <div className="mt-2 w-3 h-3 bg-white rounded-full" />
+                </>
+              ) : (
+                <div className="text-xl font-bold">Record</div>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
