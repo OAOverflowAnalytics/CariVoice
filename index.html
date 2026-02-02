@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cari-Voice - Caribbean Cultural Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sancreek&family=Unbounded:wght@400;600;800&family=Work+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --caribbean-blue: #00A8CC;
+            --sunset-orange: #FF6B35;
+            --tropical-green: #00C896;
+            --carnival-pink: #FF006E;
+            --golden-sand: #FFB700;
+            --deep-ocean: #05668D;
+            --palm-green: #028760;
+            --bg-cream: #FFF8E7;
+            --text-dark: #1A1A2E;
+        }
+
+        body {
+            font-family: 'Work Sans', sans-serif;
+            background: #000;
+            color: white;
+            overflow-x: hidden;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            position: fixed;
+            width: 100%;
+        }
+
+        /* App Container */
+        .app-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Header */
+        .app-header {
+            background: linear-gradient(135deg, var(--carnival-pink), var(--sunset-orange));
+            padding: 15px 20px;
+            padding-top: max(15px, env(safe-area-inset-top));
+            position: relative;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .logo {
+            font-family: 'Sancreek', cursive;
+            font-size: 1.8em;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        /* Main Content Area */
+        .content-wrapper {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .page {
+            display: none;
+            height: 100%;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* Discover Feed - TikTok Style */
+        .discover-feed {
+            height: 100%;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        .discover-feed::-webkit-scrollbar {
+            display: none;
+        }
+
+        .video-card {
+            height: 100%;
+            scroll-snap-align: start;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+        }
+
+        .video-card:nth-child(1) {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .video-card:nth-child(2) {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+        }
+
+        .video-card:nth-child(3) {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+        }
+
+        .video-card:nth-child(4) {
+            background: linear-gradient(135deg, #43e97b, #38f9d7);
+        }
+
+        .video-card:nth-child(5) {
+            background: linear-gradient(135deg, #fa709a, #fee140);
+        }
+
+        .video-content {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-placeholder {
+            font-size: 8em;
+            text-align: center;
+        }
+
+        /* Video Info Overlay */
+        .video-info {
+            position: absolute;
+            bottom: 100px;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+        }
+
+        .video-category {
+            display: inline-block;
+            padding: 6px 15px;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .video-title {
+            font-family: 'Unbounded', cursive;
+            font-size: 1.3em;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .video-description {
+            font-size: 0.95em;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .video-meta {
+            font-size: 0.85em;
+            opacity: 0.7;
+        }
+
+        /* Side Actions */
+        .side-actions {
+            position: absolute;
+            right: 15px;
+            bottom: 120px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            z-index: 10;
+        }
+
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            width: 55px;
+            height: 55px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .action-btn:active {
+            transform: scale(0.9);
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .action-icon {
+            font-size: 1.8em;
+        }
+
+        .action-count {
+            font-size: 0.75em;
+            font-weight: 600;
+            position: absolute;
+            bottom: -20px;
+        }
+
+        /* Audio Player */
+        .audio-player {
+            position: absolute;
+            bottom: 120px;
+            left: 20px;
+            right: 90px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .audio-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .play-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: var(--carnival-pink);
+            border: none;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .audio-progress {
+            flex: 1;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: white;
+            width: 0%;
+            transition: width 0.1s;
+        }
+
+        .audio-time {
+            font-size: 0.75em;
+            opacity: 0.7;
+        }
+
+        /* Create Story Page */
+        .create-page {
+            background: linear-gradient(135deg, var(--bg-cream), #FFE5B4);
+            padding: 30px 20px;
+            overflow-y: auto;
+            padding-bottom: 100px;
+        }
+
+        .create-card {
+            background: white;
+            border-radius: 25px;
+            padding: 30px 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .create-card h2 {
+            font-family: 'Unbounded', cursive;
+            font-size: 1.8em;
+            color: var(--carnival-pink);
+            margin-bottom: 15px;
+        }
+
+        .category-select {
+            width: 100%;
+            padding: 15px;
+            font-size: 1em;
+            border: 3px solid var(--caribbean-blue);
+            border-radius: 15px;
+            margin: 15px 0;
+            font-family: 'Work Sans', sans-serif;
+            background: white;
+        }
+
+        .recording-area {
+            background: linear-gradient(135deg, #F0F9FF, #E0F2FE);
+            border-radius: 20px;
+            padding: 40px 20px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .record-btn {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--carnival-pink), var(--sunset-orange));
+            border: 6px solid white;
+            box-shadow: 0 10px 30px rgba(255, 0, 110, 0.4);
+            font-size: 3em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            cursor: pointer;
+        }
+
+        .record-btn.recording {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 10px 30px rgba(255, 0, 110, 0.4); }
+            50% { box-shadow: 0 10px 50px rgba(255, 0, 110, 0.8); }
+        }
+
+        /* Competitions Page */
+        .compete-page {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            padding: 30px 20px;
+            overflow-y: auto;
+            padding-bottom: 100px;
+            color: white;
+        }
+
+        .comp-banner {
+            background: linear-gradient(135deg, var(--deep-ocean), var(--caribbean-blue));
+            padding: 40px 25px;
+            border-radius: 25px;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .comp-banner h2 {
+            font-family: 'Unbounded', cursive;
+            font-size: 2em;
+            margin-bottom: 15px;
+        }
+
+        .arm-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 25px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .arm-card h3 {
+            font-family: 'Unbounded', cursive;
+            font-size: 1.5em;
+            color: var(--golden-sand);
+            margin-bottom: 15px;
+        }
+
+        .arm-card ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .arm-card li {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .arm-card li::before {
+            content: '✨ ';
+        }
+
+        /* Rewards Page */
+        .rewards-page {
+            background: linear-gradient(135deg, var(--carnival-pink), var(--sunset-orange));
+            padding: 30px 20px;
+            overflow-y: auto;
+            padding-bottom: 100px;
+            color: white;
+        }
+
+        .qr-card {
+            background: white;
+            color: var(--text-dark);
+            border-radius: 25px;
+            padding: 30px 25px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .qr-code-display {
+            width: 200px;
+            height: 200px;
+            background: white;
+            border: 4px solid var(--carnival-pink);
+            margin: 20px auto;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 5em;
+        }
+
+        .scan-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, var(--tropical-green), var(--palm-green));
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-top: 20px;
+        }
+
+        .rewards-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .reward-item {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            color: var(--text-dark);
+        }
+
+        .reward-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            padding-bottom: max(10px, env(safe-area-inset-bottom));
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            flex: 1;
+            padding: 8px 0;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            background: none;
+        }
+
+        .nav-item.active {
+            color: var(--carnival-pink);
+        }
+
+        .nav-icon {
+            font-size: 1.8em;
+        }
+
+        .nav-label {
+            font-size: 0.7em;
+            font-weight: 600;
+        }
+
+        /* Status Messages */
+        .status-msg {
+            padding: 15px;
+            border-radius: 12px;
+            margin: 15px 0;
+            text-align: center;
+            font-weight: 600;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .success {
+            background: #D1FAE5;
+            color: var(--palm-green);
+        }
+
+        .info {
+            background: #DBEAFE;
+            color: var(--deep-ocean);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="app-header">
+            <div class="logo">🌴 CARI-VOICE</div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="content-wrapper">
+            <!-- DISCOVER PAGE -->
+            <div id="discover" class="page active">
+                <div class="discover-feed">
+                    <!-- Video Card 1 -->
+                    <div class="video-card">
+                        <div class="video-content">
+                            <div class="video-placeholder">👻</div>
+                        </div>
+                        <div class="video-info">
+                            <div class="video-category">📖 Folklore</div>
+                            <div class="video-title">The Lagahoo Legend</div>
+                            <div class="video-description">A shapeshifting creature from Trinidadian folklore that haunts the forest at night...</div>
+                            <div class="video-meta">🇹🇹 Trinidad • @folklore_keeper</div>
+                        </div>
+                        <div class="audio-player">
+                            <div class="audio-controls">
+                                <button class="play-btn" onclick="togglePlay(this)">▶️</button>
+                                <div class="audio-progress">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill"></div>
+                                    </div>
+                                    <div class="audio-time">0:00 / 2:34</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="side-actions">
+                            <div class="action-btn" onclick="likeVideo(this)">
+                                <div class="action-icon">❤️</div>
+                                <div class="action-count">2.4k</div>
+                            </div>
+                            <div class="action-btn" onclick="showComments()">
+                                <div class="action-icon">💬</div>
+                                <div class="action-count">342</div>
+                            </div>
+                            <div class="action-btn" onclick="shareVideo()">
+                                <div class="action-icon">📤</div>
+                                <div class="action-count">89</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Video Card 2 -->
+                    <div class="video-card">
+                        <div class="video-content">
+                            <div class="video-placeholder">🎭</div>
+                        </div>
+                        <div class="video-info">
+                            <div class="video-category">😂 Comedy</div>
+                            <div class="video-title">Carnival Morning Rush</div>
+                            <div class="video-description">Getting ready for Carnival and all the chaos that comes with it!</div>
+                            <div class="video-meta">🇧🇧 Barbados • @bajan_comedy</div>
+                        </div>
+                        <div class="audio-player">
+                            <div class="audio-controls">
+                                <button class="play-btn" onclick="togglePlay(this)">▶️</button>
+                                <div class="audio-progress">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill"></div>
+                                    </div>
+                                    <div class="audio-time">0:00 / 1:45</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="side-actions">
+                            <div class="action-btn" onclick="likeVideo(this)">
+                                <div class="action-icon">❤️</div>
+                                <div class="action-count">5.1k</div>
+                            </div>
+                            <div class="action-btn" onclick="showComments()">
+                                <div class="action-icon">💬</div>
+                                <div class="action-count">856</div>
+                            </div>
+                            <div class="action-btn" onclick="shareVideo()">
+                                <div class="action-icon">📤</div>
+                                <div class="action-count">234</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Video Card 3 -->
+                    <div class="video-card">
+                        <div class="video-content">
+                            <div class="video-placeholder">🍲</div>
+                        </div>
+                        <div class="video-info">
+                            <div class="video-category">🍴 Food</div>
+                            <div class="video-title">My Grandmother's Pelau</div>
+                            <div class="video-description">Secret recipe passed down three generations with stories of family gatherings...</div>
+                            <div class="video-meta">🇹🇹 Trinidad • @trini_kitchen</div>
+                        </div>
+                        <div class="audio-player">
+                            <div class="audio-controls">
+                                <button class="play-btn" onclick="togglePlay(this)">▶️</button>
+                                <div class="audio-progress">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill"></div>
+                                    </div>
+                                    <div class="audio-time">0:00 / 3:12</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="side-actions">
+                            <div class="action-btn" onclick="likeVideo(this)">
+                                <div class="action-icon">❤️</div>
+                                <div class="action-count">3.8k</div>
+                            </div>
+                            <div class="action-btn" onclick="showComments()">
+                                <div class="action-icon">💬</div>
+                                <div class="action-count">672</div>
+                            </div>
+                            <div class="action-btn" onclick="shareVideo()">
+                                <div class="action-icon">📤</div>
+                                <div class="action-count">445</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Video Card 4 -->
+                    <div class="video-card">
+                        <div class="video-content">
+                            <div class="video-placeholder">🎵</div>
+                        </div>
+                        <div class="video-info">
+                            <div class="video-category">🎶 Music</div>
+                            <div class="video-title">Soca Evolution Story</div>
+                            <div class="video-description">From calypso roots to modern soca - a musical journey through Caribbean sounds...</div>
+                            <div class="video-meta">🇯🇲 Jamaica • @caribbean_beats</div>
+                        </div>
+                        <div class="audio-player">
+                            <div class="audio-controls">
+                                <button class="play-btn" onclick="togglePlay(this)">▶️</button>
+                                <div class="audio-progress">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill"></div>
+                                    </div>
+                                    <div class="audio-time">0:00 / 4:20</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="side-actions">
+                            <div class="action-btn" onclick="likeVideo(this)">
+                                <div class="action-icon">❤️</div>
+                                <div class="action-count">6.2k</div>
+                            </div>
+                            <div class="action-btn" onclick="showComments()">
+                                <div class="action-icon">💬</div>
+                                <div class="action-count">1.2k</div>
+                            </div>
+                            <div class="action-btn" onclick="shareVideo()">
+                                <div class="action-icon">📤</div>
+                                <div class="action-count">567</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Video Card 5 -->
+                    <div class="video-card">
+                        <div class="video-content">
+                            <div class="video-placeholder">💃</div>
+                        </div>
+                        <div class="video-info">
+                            <div class="video-category">🎨 Fashion</div>
+                            <div class="video-title">Carnival Costume Design</div>
+                            <div class="video-description">Behind the scenes of creating a stunning mas costume for Trinidad Carnival...</div>
+                            <div class="video-meta">🇹🇹 Trinidad • @mas_designer</div>
+                        </div>
+                        <div class="audio-player">
+                            <div class="audio-controls">
+                                <button class="play-btn" onclick="togglePlay(this)">▶️</button>
+                                <div class="audio-progress">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill"></div>
+                                    </div>
+                                    <div class="audio-time">0:00 / 2:58</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="side-actions">
+                            <div class="action-btn" onclick="likeVideo(this)">
+                                <div class="action-icon">❤️</div>
+                                <div class="action-count">4.5k</div>
+                            </div>
+                            <div class="action-btn" onclick="showComments()">
+                                <div class="action-icon">💬</div>
+                                <div class="action-count">923</div>
+                            </div>
+                            <div class="action-btn" onclick="shareVideo()">
+                                <div class="action-icon">📤</div>
+                                <div class="action-count">312</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CREATE PAGE -->
+            <div id="create" class="page create-page">
+                <div class="create-card">
+                    <h2>Share Your Voice 🎭</h2>
+                    <p style="color: #666; margin-bottom: 15px;">Record your story, folklore, or creative piece</p>
+                    
+                    <select class="category-select" id="categorySelect">
+                        <option value="">Select Category...</option>
+                        <option value="storytelling">📖 Storytelling / Folklore</option>
+                        <option value="comedy">😂 Comedy Skits</option>
+                        <option value="fashion">👗 Fashion & Costume</option>
+                        <option value="food">🍲 Food & Cooking</option>
+                        <option value="music">🎵 Music & Song</option>
+                        <option value="dance">💃 Dance & Performance</option>
+                    </select>
+
+                    <div class="recording-area">
+                        <p style="color: var(--deep-ocean); margin-bottom: 25px; font-weight: 600;" id="recordStatus">
+                            Press to record your voice
+                        </p>
+                        <button class="record-btn" id="recordBtn" onclick="toggleRecording()">🎙️</button>
+                        <p style="margin-top: 25px; font-size: 1.1em; color: #666;">
+                            Duration: <strong id="duration">0:00</strong>
+                        </p>
+                    </div>
+
+                    <div id="storyPreview" style="display: none;">
+                        <div class="status-msg success">
+                            ✨ Story generated successfully!
+                        </div>
+                        <div style="background: #f9f9f9; padding: 20px; border-radius: 15px; margin-top: 15px;">
+                            <div style="width: 100%; height: 200px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 4em; margin-bottom: 15px;">
+                                🏝️
+                            </div>
+                            <h3 style="font-family: 'Unbounded', cursive; color: var(--carnival-pink); margin-bottom: 12px;">The Soucouyant Tale</h3>
+                            <p style="color: #666; line-height: 1.6;">An old woman who transforms into a ball of fire at night, soaring through the darkness...</p>
+                            <button class="scan-btn" onclick="publishStory()">Publish to Community 🚀</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COMPETITIONS PAGE -->
+            <div id="compete" class="page compete-page">
+                <div class="comp-banner">
+                    <h2>🏆 Cultural Competition</h2>
+                    <p>Celebrating Caribbean heritage</p>
+                </div>
+
+                <div class="arm-card">
+                    <h3>🏫 School-Based</h3>
+                    <p style="margin-bottom: 15px; opacity: 0.8;">1-Month Competition</p>
+                    <ul>
+                        <li>Secondary schools</li>
+                        <li>Community voting</li>
+                        <li>Semi-finals & finals</li>
+                        <li>Categories: Drama, Storytelling</li>
+                    </ul>
+                </div>
+
+                <div class="arm-card">
+                    <h3>🌍 Caribbean-Wide</h3>
+                    <p style="margin-bottom: 15px; opacity: 0.8;">Year-Long Competition</p>
+                    <ul>
+                        <li>Open to all creators</li>
+                        <li>Year-round submissions</li>
+                        <li>Top 20 per category</li>
+                        <li>Finals during Carnival</li>
+                    </ul>
+                </div>
+
+                <div class="status-msg info">
+                    🗓️ Next competition: Carnival 2026
+                </div>
+            </div>
+
+            <!-- REWARDS PAGE -->
+            <div id="rewards" class="page rewards-page">
+                <div class="qr-card">
+                    <h2 style="font-family: 'Unbounded', cursive; color: var(--carnival-pink); margin-bottom: 15px;">Scan & Win 🎁</h2>
+                    <p style="color: #666; margin-bottom: 20px;">Find QR codes at festivals and events</p>
+                    
+                    <div class="qr-code-display">📱</div>
+                    
+                    <button class="scan-btn" onclick="scanQR()">Scan QR Code</button>
+                </div>
+
+                <div class="rewards-grid">
+                    <div class="reward-item">
+                        <div class="reward-icon">🎟️</div>
+                        <strong>Festival Passes</strong>
+                    </div>
+                    <div class="reward-item">
+                        <div class="reward-icon">🍴</div>
+                        <strong>Food Vouchers</strong>
+                    </div>
+                    <div class="reward-item">
+                        <div class="reward-icon">🎨</div>
+                        <strong>Carnival Costumes</strong>
+                    </div>
+                    <div class="reward-item">
+                        <div class="reward-icon">⭐</div>
+                        <strong>Bonus Votes</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <div class="bottom-nav">
+            <button class="nav-item active" onclick="switchPage('discover', this)">
+                <div class="nav-icon">🌍</div>
+                <div class="nav-label">Discover</div>
+            </button>
+            <button class="nav-item" onclick="switchPage('create', this)">
+                <div class="nav-icon">➕</div>
+                <div class="nav-label">Create</div>
+            </button>
+            <button class="nav-item" onclick="switchPage('compete', this)">
+                <div class="nav-icon">🏆</div>
+                <div class="nav-label">Compete</div>
+            </button>
+            <button class="nav-item" onclick="switchPage('rewards', this)">
+                <div class="nav-icon">🎁</div>
+                <div class="nav-label">Rewards</div>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let isRecording = false;
+        let recordingTimer = null;
+        let seconds = 0;
+
+        function switchPage(pageId, navBtn) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // Remove active from all nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Show selected page
+            document.getElementById(pageId).classList.add('active');
+            
+            // Activate nav item
+            navBtn.classList.add('active');
+        }
+
+        function toggleRecording() {
+            const btn = document.getElementById('recordBtn');
+            const status = document.getElementById('recordStatus');
+            
+            if (!isRecording) {
+                isRecording = true;
+                btn.classList.add('recording');
+                btn.textContent = '⏸️';
+                status.textContent = 'Recording... Press to pause';
+                
+                seconds = 0;
+                recordingTimer = setInterval(() => {
+                    seconds++;
+                    const mins = Math.floor(seconds / 60);
+                    const secs = seconds % 60;
+                    document.getElementById('duration').textContent = 
+                        `${mins}:${secs.toString().padStart(2, '0')}`;
+                }, 1000);
+            } else {
+                isRecording = false;
+                btn.classList.remove('recording');
+                btn.textContent = '🎙️';
+                status.textContent = 'Generating your story...';
+                clearInterval(recordingTimer);
+                
+                setTimeout(() => {
+                    document.getElementById('storyPreview').style.display = 'block';
+                    status.textContent = 'Press to record another';
+                }, 1500);
+            }
+        }
+
+        function publishStory() {
+            const category = document.getElementById('categorySelect').value;
+            if (!category) {
+                alert('Please select a category!');
+                return;
+            }
+            
+            alert('🎉 Published successfully!\n\nYour story is now live in the community feed!');
+            document.getElementById('storyPreview').style.display = 'none';
+            document.getElementById('duration').textContent = '0:00';
+            seconds = 0;
+        }
+
+        function togglePlay(btn) {
+            const progressBar = btn.closest('.audio-player').querySelector('.progress-fill');
+            
+            if (btn.textContent === '▶️') {
+                btn.textContent = '⏸️';
+                // Simulate progress
+                let width = 0;
+                const interval = setInterval(() => {
+                    if (width >= 100) {
+                        clearInterval(interval);
+                        btn.textContent = '▶️';
+                        progressBar.style.width = '0%';
+                    } else {
+                        width += 1;
+                        progressBar.style.width = width + '%';
+                    }
+                }, 50);
+            } else {
+                btn.textContent = '▶️';
+            }
+        }
+
+        function likeVideo(btn) {
+            const count = btn.querySelector('.action-count');
+            let num = parseFloat(count.textContent) * 1000;
+            num += 1;
+            count.textContent = (num / 1000).toFixed(1) + 'k';
+            btn.style.transform = 'scale(1.2)';
+            setTimeout(() => btn.style.transform = 'scale(1)', 200);
+        }
+
+        function showComments() {
+            alert('💬 Comments feature coming soon!');
+        }
+
+        function shareVideo() {
+            alert('📤 Share link copied to clipboard!');
+        }
+
+        function scanQR() {
+            const rewards = [
+                '🎟️ You won a FREE festival pass!',
+                '🍴 You unlocked a 50% food voucher!',
+                '⭐ You gained 10 bonus votes!',
+                '🎨 You won a Carnival costume discount!'
+            ];
+            alert('QR Scanned!\n\n' + rewards[Math.floor(Math.random() * rewards.length)]);
+        }
+
+        // Prevent bounce scrolling on iOS
+        document.addEventListener('touchmove', function(e) {
+            if (!e.target.closest('.discover-feed, .create-page, .compete-page, .rewards-page')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+    </script>
+</body>
+</html>
