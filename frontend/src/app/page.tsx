@@ -49,13 +49,11 @@ export default function Home() {
     return `${m}:${sec.toString().padStart(2, '0')}`;
   }
 
-  const BACKEND_URL = "https://jordynn-undeclinable-uncolloquially.ngrok-free.dev";
+  const BACKEND_URL = "http://127.0.0.1:5000";
 
   // No session handling needed; this app sends audio directly to /transcribe.
 
   // No session history loading required.
-
-
 
   // Audio recording helpers
   const startRecording = async () => {
