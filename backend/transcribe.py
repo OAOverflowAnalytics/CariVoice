@@ -4,7 +4,6 @@ import soundfile as sf
 import librosa
 import time
 import os
-import torch
 from transformers import AutoProcessor, AutoModelForSpeechSeq2Seq
 
 BASE_MODEL = "openai/whisper-medium"

@@ -7,6 +7,8 @@ import requests
 import base64
 from urllib.parse import quote
 
+from transcribe import transcribe_one
+
 os.environ["COLAB_RELEASE_TAG"] = "v1"
 os.environ["COLAB_BACKEND_URL"] = ""
 
@@ -78,7 +80,7 @@ def generate_image():
         print(f"Error: {e}")
         return jsonify({'error': str(e)}), 500
 
-public_url = eval_js("google.colab.kernel.proxyPort(5000)")
-print(f"BACKEND_URL: {public_url}")
+# public_url = eval_js("google.colab.kernel.proxyPort(5000)")
+# print(f"BACKEND_URL: {public_url}")
 
 app.run(host='0.0.0.0', port=5000, debug=False)
