@@ -18,7 +18,9 @@ By default, the application should be running on `http://127.0.0.1:5000` but you
 
 
 # Demo 
-<video width="630" height="300" src="https://github.com/OAOverflowAnalytics/CariVoice/raw/refs/heads/main/demo.mp4"></video>
+https://github.com/user-attachments/assets/75a893c2-1569-4b42-b20b-d80b8fe660ff
+
+
 
 ---
 Made with ❤️ by [Overflow Analytics](https://github.com/OAOverflowAnalytics)
