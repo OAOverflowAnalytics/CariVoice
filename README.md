@@ -14,7 +14,7 @@ Leave this running, and navigate to the backend folder. Open another terminal in
 python app.py
 ```
 
-By default, the application should be running on `http://127.0.0.1:5000` but you can check the terminal of the backend to see the URL to navigate to.
+By default, the application should be running on [http://127.0.0.1:5000](http://127.0.0.1:5000) but you can check the terminal of the backend to see the URL to navigate to.
 
 
 # Demo 
