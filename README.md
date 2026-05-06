@@ -1,5 +1,5 @@
 # CariVoice
-An LLM that primarily utilizes speech to turn into text and product images/videos. The primary use case is to be used as a transcription system for Caribbean folklore stories and plays.
+An LLM that primarily utilizes speech to turn into text and product images. The primary use case is to be used as a transcription system for telling Caribbean folklore stories and plays, while being supplemented with images.
 
 # Setup
 To start using CariVoice, fork or clone this repository. You will see two folders: `frontend` and `backend`. For the application to work properly, you will have to place the model within `backend/model` and adjust the `PT_PATH` within `backend/transcribe.py`.
