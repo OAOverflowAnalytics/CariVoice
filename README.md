@@ -2,7 +2,7 @@
 An LLM that primarily utilizes speech to turn into text and product images/videos. The primary use case is to be used as a transcription system for Caribbean folklore stories and plays.
 
 # Setup
-To start using CariVoice, fork or clone this repository. You will see two folders: `frontend` and `backend`.
+To start using CariVoice, fork or clone this repository. You will see two folders: `frontend` and `backend`. For the application to work properly, you will have to place the model within `backend/model` and adjust the `PT_PATH` within `backend/transcribe.py`.
 
 Within the `frontend` folder, open a terminal within this folder and run the command:
 ```bash
@@ -15,3 +15,10 @@ python app.py
 ```
 
 By default, the application should be running on `http://127.0.0.1:5000` but you can check the terminal of the backend to see the URL to navigate to.
+
+
+# Demo 
+<video width="630" height="300" src="https://github.com/OAOverflowAnalytics/CariVoice/raw/refs/heads/main/demo.mp4"></video>
+
+---
+Made with ❤️ by [Overflow Analytics](https://github.com/OAOverflowAnalytics)
