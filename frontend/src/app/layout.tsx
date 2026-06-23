@@ -1,20 +1,14 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import './globals.css'
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import type { Metadata, Viewport } from "next";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CariVoice",
-  description: "Bring your Caribbean stories to life!",
+  title: "CariVoice · Caribbean stories in your voice",
+  description:
+    "Record, transcribe, illustrate, and preserve Caribbean folklore in the voice you grew up with.",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#fff4e8",
 };
 
 export default function RootLayout({
@@ -24,11 +18,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

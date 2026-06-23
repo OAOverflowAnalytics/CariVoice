@@ -1,89 +1,118 @@
-import numpy as np
-import torch
-import soundfile as sf
-import librosa
-import time
 import os
-from transformers import AutoProcessor, AutoModelForSpeechSeq2Seq
+from pathlib import Path
+from threading import Lock
 
-BASE_MODEL = "openai/whisper-medium"
-PT_PATH = "model/whisper_finetuned_best.pt"
+import librosa
+import numpy as np
+import soundfile as sf
+import torch
+from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor
 
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
-
-processor = AutoProcessor.from_pretrained(BASE_MODEL)
-
-model = AutoModelForSpeechSeq2Seq.from_pretrained(
-    BASE_MODEL,
-    low_cpu_mem_usage=True,
-    torch_dtype=torch.float32,   # match training
-).to(device)
-
-checkpoint = torch.load(PT_PATH, map_location=device)
-
-# If saved as {"model_state_dict": ...}
-if "model_state_dict" in checkpoint:
-    checkpoint = checkpoint["model_state_dict"]
-
-model.load_state_dict(checkpoint, strict=False)
-
-print("Loaded Whisper Medium model with fine-tuned weights.")
-
+BASE_MODEL = os.getenv("CARIVOICE_BASE_MODEL", "openai/whisper-medium")
+DEFAULT_CHECKPOINT = Path(__file__).resolve().parent / "model" / "whisper_finetuned_best.pt"
+MODEL_PATH_OVERRIDE = os.getenv("CARIVOICE_MODEL_PATH")
+PT_PATH = Path(MODEL_PATH_OVERRIDE or DEFAULT_CHECKPOINT).expanduser().resolve()
 AUDIO_SR = 16000
-MAX_SECONDS = 30  # matching your original logic
+MAX_SECONDS = 30
+
+_device = "cuda" if torch.cuda.is_available() else "cpu"
+_processor = None
+_model = None
+_load_lock = Lock()
+
+
+def load_model():
+    global _processor, _model
+
+    if _processor is not None and _model is not None:
+        return _processor, _model
+
+    with _load_lock:
+        if _processor is not None and _model is not None:
+            return _processor, _model
+
+        if MODEL_PATH_OVERRIDE and not PT_PATH.exists():
+            raise FileNotFoundError(
+                f"CariVoice model checkpoint not found at {PT_PATH}. "
+                "Correct CARIVOICE_MODEL_PATH or remove it to use standard Whisper."
+            )
+
+        processor = AutoProcessor.from_pretrained(BASE_MODEL)
+        model = AutoModelForSpeechSeq2Seq.from_pretrained(
+            BASE_MODEL,
+            low_cpu_mem_usage=True,
+            torch_dtype=torch.float32,
+        ).to(_device)
+
+        if PT_PATH.exists():
+            checkpoint = torch.load(PT_PATH, map_location=_device)
+            if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
+                checkpoint = checkpoint["model_state_dict"]
+            model.load_state_dict(checkpoint, strict=False)
+            print(f"Loaded CariVoice fine-tuned checkpoint from {PT_PATH}.")
+        else:
+            print(
+                f"No fine-tuned checkpoint found at {PT_PATH}; "
+                f"using the standard {BASE_MODEL} model."
+            )
+
+        model.eval()
+        _processor = processor
+        _model = model
+        print(f"Whisper is ready on {_device}.")
+
+    return _processor, _model
+
 
 def preprocess_audio(path):
-    audio, sr = sf.read(path)
+    audio, sample_rate = sf.read(path, dtype="float32")
 
-    # Convert stereo → mono
-    if len(audio.shape) > 1:
+    if audio.size == 0:
+        raise ValueError("The recording contains no audio samples.")
+
+    # Convert multi-channel audio to mono.
+    if audio.ndim > 1:
         audio = librosa.to_mono(audio.T)
 
-    # Resample if needed
-    if sr != AUDIO_SR:
-        audio = librosa.resample(audio, orig_sr=sr, target_sr=AUDIO_SR)
+    if sample_rate != AUDIO_SR:
+        audio = librosa.resample(audio, orig_sr=sample_rate, target_sr=AUDIO_SR)
 
-    return audio, AUDIO_SR
+    return np.asarray(audio, dtype=np.float32)
 
 
 def transcribe_one(audio_path):
     if not os.path.exists(audio_path):
         raise FileNotFoundError(f"Audio file not found: {audio_path}")
 
-    speech_array, sr = preprocess_audio(audio_path)
-
-    # truncate to MAX_SECONDS
-    max_len = int(MAX_SECONDS * AUDIO_SR)
-    if len(speech_array) > max_len:
-        speech_array = speech_array[:max_len]
+    processor, model = load_model()
+    speech_array = preprocess_audio(audio_path)
+    speech_array = speech_array[: MAX_SECONDS * AUDIO_SR]
 
     inputs = processor(
-        [speech_array],                    # list because HF expects batch
+        [speech_array],
         sampling_rate=AUDIO_SR,
         return_tensors="pt",
         padding="max_length",
         max_length=processor.feature_extractor.n_samples,
         truncation=True,
-        return_attention_mask=True
+        return_attention_mask=True,
     )
+    inputs = {key: value.to(_device) for key, value in inputs.items()}
 
-    # GPU + FP16 (same as your batch code)
-    inputs = {k: v.to(device) for k, v in inputs.items()}
-
-    with torch.no_grad():
-        pred_ids = model.generate(
+    with torch.inference_mode():
+        prediction_ids = model.generate(
             **inputs,
             max_length=225,
             forced_decoder_ids=processor.get_decoder_prompt_ids(
                 language="en",
-                task="transcribe"
+                task="transcribe",
             ),
             num_beams=3,
             do_sample=False,
             no_repeat_ngram_size=2,
-            suppress_tokens=None
+            suppress_tokens=None,
         )
 
-    text = processor.batch_decode(pred_ids, skip_special_tokens=True)[0]
+    text = processor.batch_decode(prediction_ids, skip_special_tokens=True)[0]
     return text.strip()

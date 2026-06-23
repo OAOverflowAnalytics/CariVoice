@@ -1,0 +1,9 @@
+accelerate
+Flask
+flask-cors
+librosa
+numpy
+requests
+soundfile
+torch
+transformers
