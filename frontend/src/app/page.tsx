@@ -15,6 +15,23 @@ type Tale = {
   gradient: string;
   excerpt: string;
   imageUrl?: string;
+  imageTheme?: string;
+};
+
+type StoryArtTheme = {
+  id: string;
+  name: string;
+  colors: [string, string, string, string];
+  motif: "web" | "fire" | "forest" | "calf" | "crossroads" | "moon" | "spirit" | "sea" | "circle";
+  keywords: string[];
+};
+
+type ImageArtwork = {
+  url: string | null;
+  theme?: string;
+  themeName?: string;
+  source?: string;
+  warning?: string;
 };
 
 const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/$/, "");
@@ -50,6 +67,213 @@ const FEATURES = [
   },
 ];
 
+const STORY_ART_THEMES: Record<string, StoryArtTheme> = {
+  "island-story": {
+    id: "island-story",
+    name: "Caribbean folklore",
+    colors: ["#21445f", "#f6b44b", "#d94131", "#fff1cf"],
+    motif: "circle",
+    keywords: [],
+  },
+  anansi: {
+    id: "anansi",
+    name: "Anansi trickster",
+    colors: ["#244c64", "#f7b547", "#d93b2f", "#fff1ca"],
+    motif: "web",
+    keywords: ["anansi", "spider", "sky-god", "sky god", "wisdom", "trickster"],
+  },
+  soucouyant: {
+    id: "soucouyant",
+    name: "Soucouyant night",
+    colors: ["#211331", "#ffb13c", "#e84d2a", "#ffe6b3"],
+    motif: "fire",
+    keywords: ["soucouyant", "fire", "ball of fire", "skin", "night", "window"],
+  },
+  "papa-bois": {
+    id: "papa-bois",
+    name: "Papa Bois forest",
+    colors: ["#183b2f", "#66a858", "#f0a83b", "#e9f3c4"],
+    motif: "forest",
+    keywords: ["papa bois", "forest", "hunter", "hunters", "guardian", "cloven", "deer"],
+  },
+  "rolling-calf": {
+    id: "rolling-calf",
+    name: "Rolling Calf road",
+    colors: ["#1f2f45", "#8896a8", "#d3382f", "#f6d28b"],
+    motif: "calf",
+    keywords: ["rolling calf", "calf", "bull", "chains", "chain", "red-eyed", "red eyes"],
+  },
+  "ti-jean": {
+    id: "ti-jean",
+    name: "Ti Jean hero",
+    colors: ["#243b63", "#f4c04d", "#d84627", "#f6efe0"],
+    motif: "crossroads",
+    keywords: ["ti jean", "devil", "clever", "plan", "deal", "crossroads"],
+  },
+  diablesse: {
+    id: "diablesse",
+    name: "Diablesse crossroads",
+    colors: ["#252046", "#d7c7ff", "#d84627", "#fff0d0"],
+    motif: "moon",
+    keywords: ["diablesse", "la diablesse", "hoof", "crossroads", "wide hat", "moon"],
+  },
+  duppy: {
+    id: "duppy",
+    name: "Duppy spirit",
+    colors: ["#18243a", "#7dc6d6", "#f3b650", "#e9f7ff"],
+    motif: "spirit",
+    keywords: ["duppy", "jumbie", "ghost", "spirit", "haunt", "haunted"],
+  },
+  "sea-spirit": {
+    id: "sea-spirit",
+    name: "Sea spirit",
+    colors: ["#0f4c5c", "#1da7a8", "#f2c14e", "#e7f8ef"],
+    motif: "sea",
+    keywords: ["river mumma", "mami wata", "mermaid", "sea", "ocean", "river", "water"],
+  },
+};
+
+function storyThemeFromText(text: string) {
+  const haystack = text.toLowerCase();
+  let bestTheme = STORY_ART_THEMES["island-story"];
+  let bestScore = 0;
+
+  Object.values(STORY_ART_THEMES).forEach((theme) => {
+    const score = theme.keywords.reduce(
+      (total, keyword) => total + (haystack.includes(keyword) ? (keyword.includes(" ") ? 3 : 1) : 0),
+      0,
+    );
+    if (score > bestScore) {
+      bestScore = score;
+      bestTheme = theme;
+    }
+  });
+
+  return bestTheme;
+}
+
+function storyMotifSvg(theme: StoryArtTheme) {
+  const [dark, mid, hot, light] = theme.colors;
+
+  if (theme.motif === "web") {
+    return `
+      <g transform="translate(360 245)" stroke="${light}" stroke-width="5" stroke-linecap="round" opacity=".9">
+        <circle r="52" fill="none"/><circle r="92" fill="none"/><circle r="136" fill="none"/>
+        ${Array.from({ length: 12 }, (_, index) => `<line x1="0" y1="0" x2="0" y2="-148" transform="rotate(${index * 30})"/>`).join("")}
+      </g>
+      <g transform="translate(360 270)" filter="url(#shadow)">
+        <ellipse cx="0" cy="16" rx="40" ry="49" fill="${dark}"/><circle cx="0" cy="-35" r="30" fill="${dark}"/>
+        <path d="M-32-2C-99 8-105 56-146 68M32-2C99 8 105 56 146 68M-26 24C-89 55-78 99-121 120M26 24C89 55 78 99 121 120" fill="none" stroke="${dark}" stroke-width="13" stroke-linecap="round"/>
+        <circle cx="-11" cy="-41" r="5" fill="${hot}"/><circle cx="11" cy="-41" r="5" fill="${hot}"/>
+      </g>`;
+  }
+
+  if (theme.motif === "fire") {
+    return `
+      <g transform="translate(360 265)" filter="url(#shadow)">
+        <path d="M0-164C69-89 148-52 108 61 84 126 28 165-40 150-108 134-138 66-105-1-79-59-33-70 0-164Z" fill="${hot}"/>
+        <path d="M9-98C48-48 82-15 62 51 46 102-5 118-41 83-77 48-54 2 9-98Z" fill="${mid}"/>
+        <path d="M6-38C28-10 37 29 8 64-15 41-18 4 6-38Z" fill="${light}"/>
+      </g>`;
+  }
+
+  if (theme.motif === "forest") {
+    return `
+      <g transform="translate(360 260)" filter="url(#shadow)">
+        <path d="M-39 126C-25 58-29-1-12-75-4-109 30-109 38-75 56-1 51 58 66 126Z" fill="${dark}"/>
+        <path d="M-134 9C-77-116 29-150 126-36 58-45 9-18-17 56-46 39-82 28-134 9Z" fill="${mid}" opacity=".9"/>
+        <path d="M-190 79C-110-29-20-41 76 52-11 49-67 78-110 124Z" fill="${light}" opacity=".8"/>
+        <circle cx="-16" cy="-53" r="6" fill="${hot}"/><circle cx="19" cy="-53" r="6" fill="${hot}"/>
+      </g>`;
+  }
+
+  if (theme.motif === "calf") {
+    return `
+      <g transform="translate(360 305)" filter="url(#shadow)">
+        <ellipse cx="0" cy="8" rx="132" ry="62" fill="${dark}"/><circle cx="113" cy="-18" r="49" fill="${dark}"/>
+        <path d="M86-52C60-95 83-109 113-70M138-53C170-95 196-79 157-40" fill="none" stroke="${dark}" stroke-width="16" stroke-linecap="round"/>
+        <path d="M-88 56L-112 132M-25 61L-34 138M64 57L78 133M111 39L139 119" stroke="${dark}" stroke-width="19" stroke-linecap="round"/>
+        <circle cx="102" cy="-28" r="7" fill="${hot}"/><circle cx="128" cy="-26" r="7" fill="${hot}"/>
+        <path d="M-181 42C-150 82-116 80-85 41M-154 82C-124 116-90 114-59 83" fill="none" stroke="${light}" stroke-width="8" stroke-linecap="round"/>
+      </g>`;
+  }
+
+  if (theme.motif === "crossroads") {
+    return `
+      <g transform="translate(360 288)" filter="url(#shadow)">
+        <path d="M-62 168L-16-48H18L68 168Z" fill="${mid}" opacity=".85"/>
+        <path d="M-198 168C-89 74 58 39 213 38L229 78C66 80-52 116-134 168Z" fill="${light}" opacity=".78"/>
+        <circle cx="-12" cy="-80" r="31" fill="${dark}"/>
+        <path d="M-28-51C-63 6-79 56-68 112H37C48 47 31-5 4-51Z" fill="${dark}"/>
+        <path d="M37-55C78-106 123-96 160-34 115-55 83-49 58-18Z" fill="${hot}" opacity=".9"/>
+      </g>`;
+  }
+
+  if (theme.motif === "moon") {
+    return `
+      <g transform="translate(360 276)" filter="url(#shadow)">
+        <circle cx="113" cy="-117" r="58" fill="${light}" opacity=".9"/><circle cx="134" cy="-134" r="58" fill="${dark}" opacity=".4"/>
+        <path d="M-80-80C-25-128 43-128 94-80 43-65-28-66-80-80Z" fill="${dark}"/>
+        <circle cx="7" cy="-55" r="27" fill="${dark}"/>
+        <path d="M-51-25C-100 44-121 116-136 171H149C131 110 101 40 56-25Z" fill="${hot}"/>
+      </g>`;
+  }
+
+  if (theme.motif === "spirit") {
+    return `
+      <g transform="translate(360 275)" filter="url(#shadow)">
+        <path d="M-68 138C-112 73-82-11-31-75 18-138 95-75 74 5 58 65 108 94 80 143 38 120 8 122-23 153-35 135-48 131-68 138Z" fill="${light}" opacity=".76"/>
+        <circle cx="-4" cy="-42" r="6" fill="${hot}"/><circle cx="23" cy="-42" r="6" fill="${hot}"/>
+        <path d="M-134 101C-65 67 28 66 132 91" fill="none" stroke="${mid}" stroke-width="12" stroke-linecap="round" opacity=".6"/>
+      </g>`;
+  }
+
+  if (theme.motif === "sea") {
+    return `
+      <g transform="translate(360 288)" filter="url(#shadow)">
+        <path d="M-178 100C-91 45 7 45 92 100 30 130-91 130-178 100Z" fill="${mid}" opacity=".9"/>
+        <path d="M-52 77C-43 11-22-45 16-95 61-35 77 20 68 77Z" fill="${light}" opacity=".9"/>
+        <circle cx="12" cy="-103" r="28" fill="${light}"/>
+        <path d="M-248 132C-181 102-111 102-43 132 25 163 94 163 161 132 188 120 216 114 248 114" fill="none" stroke="${light}" stroke-width="13" stroke-linecap="round" opacity=".82"/>
+      </g>`;
+  }
+
+  return `
+    <g transform="translate(360 278)" filter="url(#shadow)">
+      <circle cx="-90" cy="-17" r="52" fill="${mid}"/><circle cx="0" cy="-42" r="64" fill="${hot}"/><circle cx="96" cy="-17" r="52" fill="${mid}"/>
+      <path d="M-162 126C-107 52-48 27 0 27 48 27 107 52 162 126Z" fill="${dark}"/>
+      <path d="M-196 146C-124 99-51 99 22 146 94 193 168 193 242 146" fill="none" stroke="${light}" stroke-width="12" stroke-linecap="round" opacity=".8"/>
+    </g>`;
+}
+
+function customStoryImage(themeId: string) {
+  const theme = STORY_ART_THEMES[themeId] || STORY_ART_THEMES["island-story"];
+  const [dark, mid, hot, light] = theme.colors;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="460" viewBox="0 0 720 460" role="img" aria-label="${theme.name}">
+    <defs>
+      <linearGradient id="sky" x1="0" x2="1" y1="0" y2="1">
+        <stop offset="0" stop-color="${dark}"/><stop offset=".55" stop-color="${mid}"/><stop offset="1" stop-color="${hot}"/>
+      </linearGradient>
+      <radialGradient id="glow" cx="52%" cy="38%" r="58%">
+        <stop offset="0" stop-color="${light}" stop-opacity=".76"/><stop offset="1" stop-color="${light}" stop-opacity="0"/>
+      </radialGradient>
+      <filter id="shadow" x="-35%" y="-35%" width="170%" height="170%">
+        <feDropShadow dx="0" dy="13" stdDeviation="16" flood-color="#1b0d10" flood-opacity=".35"/>
+      </filter>
+      <pattern id="texture" width="34" height="34" patternUnits="userSpaceOnUse">
+        <path d="M0 8H34M8 0V34" stroke="#fff" stroke-opacity=".07" stroke-width="2"/>
+      </pattern>
+    </defs>
+    <rect width="720" height="460" fill="url(#sky)"/><rect width="720" height="460" fill="url(#texture)"/>
+    <circle cx="128" cy="88" r="82" fill="${light}" opacity=".16"/><circle cx="530" cy="145" r="210" fill="url(#glow)"/>
+    <path d="M0 332C139 278 230 310 340 270 470 222 580 250 720 196V460H0Z" fill="${dark}" opacity=".28"/>
+    <path d="M0 386C100 342 207 359 306 330 420 293 540 304 720 252V460H0Z" fill="${dark}" opacity=".46"/>
+    ${storyMotifSvg(theme)}
+    <path d="M55 392C132 368 209 368 286 392 363 416 440 416 517 392 594 368 650 368 704 392" fill="none" stroke="${light}" stroke-width="8" stroke-linecap="round" opacity=".42"/>
+  </svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
 const INITIAL_TALES: Tale[] = [
   {
     id: "anansi-sky-god",
@@ -59,6 +283,8 @@ const INITIAL_TALES: Tale[] = [
     accent: "Jamaican Patois",
     icon: "🕷️",
     gradient: "linear-gradient(135deg,#ff5630,#e5286f 60%,#ff5630)",
+    imageUrl: customStoryImage("anansi"),
+    imageTheme: "anansi",
     excerpt:
       "Long time ago, Anansi heard that all the wisdom in the world could be his—if he could complete the Sky-God’s impossible tasks.",
   },
@@ -70,6 +296,8 @@ const INITIAL_TALES: Tale[] = [
     accent: "Trini Creole",
     icon: "🔥",
     gradient: "linear-gradient(135deg,#ff9e2c,#ff5630)",
+    imageUrl: customStoryImage("soucouyant"),
+    imageTheme: "soucouyant",
     excerpt:
       "When night settles over the village, a ball of fire slips between the silk-cotton trees, looking for a house with an open window.",
   },
@@ -81,6 +309,8 @@ const INITIAL_TALES: Tale[] = [
     accent: "Trini Creole",
     icon: "🌿",
     gradient: "linear-gradient(135deg,#ff9e2c,#d9461f)",
+    imageUrl: customStoryImage("papa-bois"),
+    imageTheme: "papa-bois",
     excerpt:
       "Deep in the forest, the old guardian walks on cloven feet and whistles a warning whenever hunters take more than they need.",
   },
@@ -92,6 +322,8 @@ const INITIAL_TALES: Tale[] = [
     accent: "Jamaican Patois",
     icon: "🐂",
     gradient: "linear-gradient(135deg,#e5286f,#ff5630)",
+    imageUrl: customStoryImage("rolling-calf"),
+    imageTheme: "rolling-calf",
     excerpt:
       "Chains rattled behind him on the moonlit road, and every time he looked back, the red-eyed calf was closer.",
   },
@@ -103,6 +335,8 @@ const INITIAL_TALES: Tale[] = [
     accent: "Haitian Kreyòl",
     icon: "😈",
     gradient: "linear-gradient(135deg,#ff5630,#ffc94d)",
+    imageUrl: customStoryImage("ti-jean"),
+    imageTheme: "ti-jean",
     excerpt:
       "Ti Jean had no gold and no great strength, but he carried the one thing the Devil could never predict: a clever plan.",
   },
@@ -114,6 +348,8 @@ const INITIAL_TALES: Tale[] = [
     accent: "Dominican Creole",
     icon: "🌙",
     gradient: "linear-gradient(135deg,#d9461f,#ff5630)",
+    imageUrl: customStoryImage("diablesse"),
+    imageTheme: "diablesse",
     excerpt:
       "She appeared at the crossroads dressed for a grand dance, but beneath the long skirt was one polished hoof.",
   },
@@ -159,6 +395,16 @@ function MicIcon() {
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <rect x="8" y="2.5" width="8" height="13" rx="4" />
       <path d="M5 11.5a7 7 0 0 0 14 0M12 18.5v3M8.5 21.5h7" />
+    </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3v12" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M5 21h14" />
     </svg>
   );
 }
@@ -253,23 +499,237 @@ async function responseError(response: Response) {
   }
 }
 
-async function imageUrlFromResponse(response: Response): Promise<string | null> {
+async function artworkFromResponse(response: Response): Promise<ImageArtwork> {
   const contentType = (response.headers.get("content-type") || "").toLowerCase();
 
   if (contentType.startsWith("image/")) {
-    return URL.createObjectURL(await response.blob());
+    return { url: URL.createObjectURL(await response.blob()), source: "generated" };
   }
 
   const data = await response.json();
   const value =
     data.imageUrl || data.url || data.image || data.imageUrlBase64 || data.base64;
 
-  if (!value || typeof value !== "string") return null;
-  if (value.startsWith("data:image") || value.startsWith("http")) return value;
-  if (/^[A-Za-z0-9+/=\s]+$/.test(value) && value.length > 100) {
-    return `data:image/png;base64,${value.replace(/\s/g, "")}`;
+  const artwork: ImageArtwork = {
+    url: null,
+    theme: typeof data.theme === "string" ? data.theme : undefined,
+    themeName: typeof data.themeName === "string" ? data.themeName : undefined,
+    source: typeof data.source === "string" ? data.source : undefined,
+    warning: typeof data.warning === "string" ? data.warning : undefined,
+  };
+
+  if (!value || typeof value !== "string") return artwork;
+  if (value.startsWith("data:image") || value.startsWith("http")) {
+    return { ...artwork, url: value };
   }
-  return value;
+  if (/^[A-Za-z0-9+/=\s]+$/.test(value) && value.length > 100) {
+    return { ...artwork, url: `data:image/png;base64,${value.replace(/\s/g, "")}` };
+  }
+  return { ...artwork, url: value };
+}
+
+function roundedRect(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+) {
+  const safeRadius = Math.min(radius, width / 2, height / 2);
+  context.beginPath();
+  context.moveTo(x + safeRadius, y);
+  context.lineTo(x + width - safeRadius, y);
+  context.quadraticCurveTo(x + width, y, x + width, y + safeRadius);
+  context.lineTo(x + width, y + height - safeRadius);
+  context.quadraticCurveTo(x + width, y + height, x + width - safeRadius, y + height);
+  context.lineTo(x + safeRadius, y + height);
+  context.quadraticCurveTo(x, y + height, x, y + height - safeRadius);
+  context.lineTo(x, y + safeRadius);
+  context.quadraticCurveTo(x, y, x + safeRadius, y);
+  context.closePath();
+}
+
+function loadImageForCanvas(source: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    if (!source.startsWith("data:") && !source.startsWith("blob:")) {
+      image.crossOrigin = "anonymous";
+    }
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("The story image could not be loaded."));
+    image.src = source;
+  });
+}
+
+function drawImageCover(
+  context: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) {
+  const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
+  const sourceWidth = width / scale;
+  const sourceHeight = height / scale;
+  const sourceX = (image.naturalWidth - sourceWidth) / 2;
+  const sourceY = (image.naturalHeight - sourceHeight) / 2;
+
+  context.drawImage(
+    image,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    x,
+    y,
+    width,
+    height,
+  );
+}
+
+function splitLongWord(
+  context: CanvasRenderingContext2D,
+  word: string,
+  maxWidth: number,
+) {
+  const chunks: string[] = [];
+  let current = "";
+
+  Array.from(word).forEach((letter) => {
+    const next = `${current}${letter}`;
+    if (current && context.measureText(next).width > maxWidth) {
+      chunks.push(current);
+      current = letter;
+      return;
+    }
+    current = next;
+  });
+
+  if (current) chunks.push(current);
+  return chunks;
+}
+
+function wrapCanvasText(
+  context: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+) {
+  const lines: string[] = [];
+  const paragraphs = text.split(/\n+/).map((paragraph) => paragraph.trim()).filter(Boolean);
+
+  paragraphs.forEach((paragraph, paragraphIndex) => {
+    let line = "";
+    const words = paragraph.split(/\s+/).flatMap((word) =>
+      context.measureText(word).width > maxWidth ? splitLongWord(context, word, maxWidth) : word,
+    );
+
+    words.forEach((word) => {
+      const nextLine = line ? `${line} ${word}` : word;
+      if (line && context.measureText(nextLine).width > maxWidth) {
+        lines.push(line);
+        line = word;
+        return;
+      }
+      line = nextLine;
+    });
+
+    if (line) lines.push(line);
+    if (paragraphIndex < paragraphs.length - 1) lines.push("");
+  });
+
+  return lines.length ? lines : [text.trim()];
+}
+
+async function downloadPosterImage(
+  imageUrl: string,
+  transcript: string,
+  themeName: string,
+) {
+  const image = await loadImageForCanvas(imageUrl);
+  const posterWidth = 1400;
+  const artworkHeight = 900;
+  const textPaddingX = 84;
+  const textMaxWidth = posterWidth - textPaddingX * 2;
+  const fontSize = transcript.length > 900 ? 34 : 38;
+  const lineHeight = Math.round(fontSize * 1.45);
+
+  const measuringCanvas = document.createElement("canvas");
+  const measuringContext = measuringCanvas.getContext("2d");
+  if (!measuringContext) throw new Error("Canvas is unavailable in this browser.");
+
+  measuringContext.font = `${fontSize}px "DM Sans", Arial, sans-serif`;
+  const lines = wrapCanvasText(measuringContext, transcript, textMaxWidth);
+  const textTopPadding = 72;
+  const headingHeight = 86;
+  const textBottomPadding = 82;
+  const transcriptHeight = Math.max(lineHeight, lines.length * lineHeight);
+  const posterHeight = artworkHeight + textTopPadding + headingHeight + transcriptHeight + textBottomPadding;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = posterWidth;
+  canvas.height = posterHeight;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Canvas is unavailable in this browser.");
+
+  context.fillStyle = "#fff4e8";
+  context.fillRect(0, 0, posterWidth, posterHeight);
+  drawImageCover(context, image, 0, 0, posterWidth, artworkHeight);
+
+  const watermarkText = "CariVoice";
+  context.save();
+  context.font = '700 48px "Sora", Arial, sans-serif';
+  context.textBaseline = "middle";
+  const watermarkPaddingX = 28;
+  const watermarkHeight = 78;
+  const watermarkWidth = context.measureText(watermarkText).width + watermarkPaddingX * 2;
+  const watermarkX = posterWidth - watermarkWidth - 42;
+  const watermarkY = artworkHeight - watermarkHeight - 42;
+  roundedRect(context, watermarkX, watermarkY, watermarkWidth, watermarkHeight, 24);
+  context.fillStyle = "rgba(58, 20, 16, 0.62)";
+  context.fill();
+  context.lineWidth = 2;
+  context.strokeStyle = "rgba(255, 255, 255, 0.42)";
+  context.stroke();
+  context.fillStyle = "#ffffff";
+  context.fillText(watermarkText, watermarkX + watermarkPaddingX, watermarkY + watermarkHeight / 2);
+  context.restore();
+
+  const copyTop = artworkHeight + textTopPadding;
+  context.fillStyle = "#3a1410";
+  context.font = '700 44px "Sora", Arial, sans-serif';
+  context.fillText(`${themeName} story`, textPaddingX, copyTop);
+
+  context.fillStyle = "#d9461f";
+  context.font = '700 24px "DM Sans", Arial, sans-serif';
+  context.fillText("Recorded with CariVoice", textPaddingX, copyTop + 40);
+
+  context.fillStyle = "#3e2926";
+  context.font = `${fontSize}px "DM Sans", Arial, sans-serif`;
+  context.textBaseline = "top";
+  let currentY = copyTop + headingHeight;
+  lines.forEach((line) => {
+    if (line) context.fillText(line, textPaddingX, currentY);
+    currentY += lineHeight;
+  });
+
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((nextBlob) => {
+      if (nextBlob) {
+        resolve(nextBlob);
+        return;
+      }
+      reject(new Error("The story image could not be prepared."));
+    }, "image/png");
+  });
+
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `carivoice-illustrated-story-${Date.now()}.png`;
+  anchor.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 500);
 }
 
 export default function Home() {
@@ -280,9 +740,11 @@ export default function Home() {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [sceneUrl, setSceneUrl] = useState<string | null>(null);
+  const [sceneTheme, setSceneTheme] = useState<StoryArtTheme | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [savedTales, setSavedTales] = useState<Tale[]>([]);
   const [isSaved, setIsSaved] = useState(false);
+  const [isDownloadingStoryImage, setIsDownloadingStoryImage] = useState(false);
   const [selectedTale, setSelectedTale] = useState<Tale | null>(null);
   const [pendingStart, setPendingStart] = useState(false);
 
@@ -369,7 +831,9 @@ export default function Home() {
           throw new Error("The recording was received, but no speech was detected.");
         }
 
+        const localTheme = storyThemeFromText(text);
         setTranscript(text);
+        setSceneTheme(localTheme);
         setStudioStatus("illustrating");
 
         try {
@@ -383,12 +847,15 @@ export default function Home() {
             throw new Error(await responseError(imageResponse));
           }
 
-          const nextSceneUrl = await imageUrlFromResponse(imageResponse);
-          if (!nextSceneUrl) throw new Error("The image service returned no artwork.");
-          setSceneObjectUrl(nextSceneUrl);
+          const artwork = await artworkFromResponse(imageResponse);
+          if (!artwork.url) throw new Error("The image service returned no artwork.");
+          setSceneObjectUrl(artwork.url);
+          setSceneTheme(STORY_ART_THEMES[artwork.theme || ""] || localTheme);
+          if (artwork.warning) setNotice(artwork.warning);
         } catch (imageError) {
           console.error(imageError);
-          setNotice("Your transcript is ready, but the illustration service is unavailable.");
+          setSceneObjectUrl(customStoryImage(localTheme.id));
+          setNotice("Your transcript is ready. CariVoice used a custom local illustration for this story.");
         }
 
         setStudioStatus("complete");
@@ -430,6 +897,7 @@ export default function Home() {
       setAudioBlob(null);
       setAudioObjectUrl(null);
       setSceneObjectUrl(null);
+      setSceneTheme(null);
       setIsSaved(false);
       setElapsed(0);
       chunksRef.current = [];
@@ -633,12 +1101,33 @@ export default function Home() {
     window.setTimeout(() => URL.revokeObjectURL(url), 500);
   }, [transcript]);
 
+  const downloadStoryImage = useCallback(async () => {
+    if (!sceneUrl || !transcript || isDownloadingStoryImage) return;
+
+    setIsDownloadingStoryImage(true);
+    setNotice(null);
+
+    try {
+      await downloadPosterImage(
+        sceneUrl,
+        transcript,
+        sceneTheme?.name || "CariVoice",
+      );
+    } catch (error) {
+      console.error(error);
+      setNotice("CariVoice could not prepare that story image. Please try again.");
+    } finally {
+      setIsDownloadingStoryImage(false);
+    }
+  }, [isDownloadingStoryImage, sceneTheme, sceneUrl, transcript]);
+
   const saveStory = useCallback(() => {
     if (!transcript || isSaved) return;
     const wordCount = transcript.split(/\s+/).filter(Boolean).length;
+    const theme = sceneTheme || storyThemeFromText(transcript);
     const tale: Tale = {
       id: `recorded-${Date.now()}`,
-      title: "My recorded story",
+      title: theme.id === "island-story" ? "My recorded story" : `${theme.name} story`,
       teller: `Recorded today · ${new Date().toLocaleDateString(undefined, {
         month: "short",
         day: "numeric",
@@ -647,15 +1136,16 @@ export default function Home() {
       duration: formatTime(elapsed),
       accent: "Caribbean voice",
       icon: "🎙️",
-      gradient: "linear-gradient(135deg,#ff9e2c,#ff5630 55%,#e5286f)",
+      gradient: `linear-gradient(135deg,${theme.colors[1]},${theme.colors[2]} 55%,${theme.colors[0]})`,
       excerpt:
         transcript.length > 190 ? `${transcript.slice(0, 187).trim()}…` : transcript,
-      imageUrl: sceneUrl || undefined,
+      imageUrl: sceneUrl || customStoryImage(theme.id),
+      imageTheme: theme.id,
     };
     if (wordCount > 0) setSavedTales((current) => [tale, ...current]);
     setIsSaved(true);
     setNotice("Story saved to your library.");
-  }, [elapsed, isSaved, sceneUrl, transcript]);
+  }, [elapsed, isSaved, sceneTheme, sceneUrl, transcript]);
 
   const statusLabel = {
     ready: "Ready",
@@ -840,6 +1330,16 @@ export default function Home() {
                     <button onClick={saveStory} disabled={isSaved}>
                       {isSaved ? "Saved to library" : "Save to library"}
                     </button>
+                    {sceneUrl && (
+                      <button
+                        className="story-download-button"
+                        onClick={downloadStoryImage}
+                        disabled={isDownloadingStoryImage}
+                      >
+                        <DownloadIcon />
+                        {isDownloadingStoryImage ? "Preparing image" : "Download story image"}
+                      </button>
+                    )}
                     <button onClick={downloadTranscript}>Download transcript</button>
                   </div>
                 )}
@@ -863,8 +1363,11 @@ export default function Home() {
                       <strong>{transcript ? "Your story, brought to life" : "Your scene will appear here"}</strong>
                     </div>
                   )}
+                  {sceneUrl && <span className="scene-watermark">CariVoice</span>}
                   <div className="scene-footer">
-                    {sceneUrl ? "AI-illustrated scene · generated from your story" : "Auto-illustrated scene"}
+                    {sceneUrl
+                      ? `${sceneTheme?.name || "Custom folklore"} scene - generated from your story`
+                      : "Auto-illustrated scene"}
                   </div>
                 </div>
               </article>

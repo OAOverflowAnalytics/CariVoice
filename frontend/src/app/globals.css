@@ -875,6 +875,26 @@ audio:focus-visible {
   background: var(--ink);
 }
 
+.result-actions .story-download-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: white;
+  border-color: transparent;
+  background: linear-gradient(120deg, var(--orange), var(--coral) 55%, var(--pink));
+  box-shadow: 0 8px 18px rgba(255, 86, 48, 0.24);
+}
+
+.result-actions .story-download-button svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.2;
+}
+
 .result-actions button:disabled {
   color: #52735c;
   background: #eaf5ed;
@@ -969,6 +989,24 @@ audio:focus-visible {
 .scene-loading small {
   margin-top: 5px;
   font-size: 12px;
+}
+
+.scene-watermark {
+  position: absolute;
+  z-index: 4;
+  right: 14px;
+  top: 14px;
+  padding: 7px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  color: white;
+  background: rgba(58, 20, 16, 0.48);
+  box-shadow: 0 6px 16px rgba(20, 5, 4, 0.2);
+  font-family: "Sora", sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
 }
 
 .scene-footer {
